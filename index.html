@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GRID ZOOM · 高美濕地光影紀實</title>
+  <!-- Google Fonts: Inter & Space Mono for modern clean layout -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"PingFang TC"', '"Noto Sans TC"', '"Microsoft JhengHei"', 'Inter', 'sans-serif'],
+            mono: ['"Space Mono"', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0a0c;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #23252a;
+    }
+
+    /* Scroll Reveal Baseline */
+    .reveal-on-scroll {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+    .reveal-on-scroll.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Staggered delay helpers */
+    .delay-100 { transition-delay: 100ms; }
+    .delay-200 { transition-delay: 200ms; }
+    .delay-300 { transition-delay: 300ms; }
+    .delay-400 { transition-delay: 400ms; }
+
+    /* Card Image Transitions: Grayscale -> Vivid Full Color */
+    .grid-img {
+      filter: grayscale(100%) brightness(0.85) contrast(1.05);
+      transition: filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+      will-change: filter, transform;
+    }
+    .grid-item:hover .grid-img {
+      filter: grayscale(0%) brightness(1.05) contrast(1.08);
+      transform: scale(1.06);
+    }
+
+    /* Card Overlay Info: Hidden/dimmed -> Sliding in cleanly */
+    .grid-caption {
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+    .grid-item:hover .grid-caption {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Minimap item indicator */
+    .minimap-dot.active {
+      background-color: #d4af37;
+      transform: scale(1.3);
+    }
+
+    /* Field Note Cards: Dual Clear Hover Transitions */
+    .field-note-card {
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-color 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                  background 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: transform, box-shadow;
+    }
+    /* 變化一：卡片懸浮升起，邊框變為金色並綻放光暈，背景轉為深金漸層 */
+    .field-note-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(212, 175, 55, 0.7);
+      background: linear-gradient(180deg, rgba(212, 175, 55, 0.08) 0%, rgba(18, 19, 24, 0.95) 100%);
+      box-shadow: 0 16px 36px -8px rgba(212, 175, 55, 0.2), 0 0 0 1px rgba(212, 175, 55, 0.25);
+    }
+    /* 變化二：頂部金色光條展開，底部動作提示滑入浮現 */
+    .field-note-card .note-bar {
+      width: 0%;
+      transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .field-note-card:hover .note-bar {
+      width: 100%;
+    }
+    .field-note-card .note-action {
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .field-note-card:hover .note-action {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Location Category Card Hover Effect */
+    .category-card {
+      transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.45s ease, box-shadow 0.45s ease;
+    }
+    .category-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(212, 175, 55, 0.6);
+      box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(212, 175, 55, 0.3);
+    }
+    .category-card .cat-img {
+      filter: grayscale(80%) brightness(0.8);
+      transition: filter 0.6s ease, transform 0.7s ease;
+    }
+    .category-card:hover .cat-img {
+      filter: grayscale(0%) brightness(1.02);
+      transform: scale(1.05);
+    }
+
+    /* Active Nav Tab Indicator */
+    .nav-tab.active {
+      color: #fff;
+      border-bottom-color: #d4af37;
+    }
+
+    /* Universal Entrance Animations for Headings, Tags & Text across views */
+    @keyframes titleEntrance {
+      0% {
+        opacity: 0;
+        transform: translateY(28px) scale(0.97);
+        filter: blur(10px);
+        letter-spacing: -0.04em;
+      }
+      60% {
+        filter: blur(2px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0px);
+        letter-spacing: -0.025em;
+      }
+    }
+
+    @keyframes textFadeSlideUp {
+      0% {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .anim-tag {
+      animation: textFadeSlideUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+    }
+    .anim-heading {
+      animation: titleEntrance 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+    }
+    .anim-desc {
+      animation: textFadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.38s both;
+    }
+    .anim-cta {
+      animation: textFadeSlideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+    }
+
+    /* Smooth Zoom Modal Transition */
+    #zoomDetailModal {
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+  </style>
+</head>
+<body class="bg-[#0b0b0e] text-[#e3e5ea] min-h-screen flex flex-col font-sans selection:bg-[#d4af37] selection:text-black">
+
+  <!-- ==================== 1. BRAND NAVIGATION BAR ==================== -->
+  <nav class="w-full border-b border-white/10 px-6 sm:px-10 py-4 flex items-center justify-between text-xs font-mono tracking-wider sticky top-0 z-40 bg-[#0b0b0e]/90 backdrop-blur-md">
+    
+    <!-- Left: Brand Logo & Title -->
+    <div class="flex items-center space-x-3">
+      <button onclick="switchView('collections')" class="flex items-center space-x-2 text-white font-bold tracking-widest text-sm uppercase group text-left">
+        <span class="w-2.5 h-2.5 rounded-full bg-[#d4af37] inline-block animate-pulse"></span>
+        <span class="group-hover:text-[#d4af37] transition-colors">LENS ARCHIVE</span>
+      </button>
+      <span class="text-zinc-600">/</span>
+      <span id="currentViewBreadcrumb" class="text-zinc-400 hidden sm:inline">影集總覽</span>
+    </div>
+
+    <!-- Center: Location / Category Navigation Tabs -->
+    <div class="hidden lg:flex items-center space-x-7 text-zinc-400">
+      <button onclick="switchView('collections')" id="tab-collections" class="nav-tab active py-1 border-b-2 border-[#d4af37] hover:text-white transition-colors tracking-widest uppercase text-xs flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#d4af37]"></span>
+        <span>影集總覽 [ALL]</span>
+      </button>
+      <button onclick="switchView('gaomei')" id="tab-gaomei" class="nav-tab py-1 border-b-2 border-transparent hover:text-white transition-colors tracking-widest uppercase text-xs">
+        高美濕地 [GAOMEI]
+      </button>
+      <button onclick="switchView('hehuan')" id="tab-hehuan" class="nav-tab py-1 border-b-2 border-transparent hover:text-white transition-colors tracking-widest uppercase text-xs">
+        合歡山徑 [HEHUAN]
+      </button>
+      <button onclick="switchView('oldtown')" id="tab-oldtown" class="nav-tab py-1 border-b-2 border-transparent hover:text-white transition-colors tracking-widest uppercase text-xs">
+        舊埕記憶 [OLD TOWN]
+      </button>
+    </div>
+
+    <!-- Right: Minimap Index Preview & Local File Upload -->
+    <div class="flex items-center space-x-4 sm:space-x-6">
+      <!-- Minimap dots (Visible when in gallery view) -->
+      <div id="minimapContainer" class="hidden sm:flex items-center space-x-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10" title="作品索引導航">
+        <div id="minimap" class="flex items-center space-x-1.5">
+          <!-- Dots rendered via JS -->
+        </div>
+      </div>
+
+      <!-- Quick Upload Button -->
+      <label for="filePicker" class="cursor-pointer text-[11px] text-zinc-400 hover:text-white border border-white/15 px-3 py-1.5 rounded-full hover:bg-white/10 transition-colors flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 text-[#d4af37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+        <span class="hidden md:inline">載入相片</span>
+        <input type="file" id="filePicker" multiple accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+      </label>
+
+      <!-- Mobile Menu Toggle -->
+      <button onclick="toggleMobileMenu()" class="lg:hidden text-zinc-400 hover:text-white p-1" aria-label="Toggle Menu">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Dropdown Menu -->
+  <div id="mobileMenu" class="hidden lg:hidden bg-[#0e0f14] border-b border-white/10 px-6 py-4 space-y-3 text-xs font-mono tracking-wider">
+    <button onclick="switchView('collections'); toggleMobileMenu();" class="block w-full text-left text-[#d4af37] font-bold py-1.5">00. 影集總覽 [ALL COLLECTIONS]</button>
+    <button onclick="switchView('gaomei'); toggleMobileMenu();" class="block w-full text-left text-zinc-300 hover:text-[#d4af37] py-1.5">01. 高美濕地篇章 [GAOMEI WETLANDS]</button>
+    <button onclick="switchView('hehuan'); toggleMobileMenu();" class="block w-full text-left text-zinc-300 hover:text-[#d4af37] py-1.5">02. 合歡山徑篇章 [HEHUAN RIDGE]</button>
+    <button onclick="switchView('oldtown'); toggleMobileMenu();" class="block w-full text-left text-zinc-300 hover:text-[#d4af37] py-1.5">03. 舊埕記憶篇章 [OLD TOWN]</button>
+  </div>
+
+  <!-- ==================== VIEW 1: COLLECTIONS OVERVIEW (影集總覽頁) ==================== -->
+  <div id="view-collections" class="flex flex-grow flex-col">
+    <!-- Collections Hero -->
+    <header class="border-b border-white/10 px-6 sm:px-10 py-16 sm:py-24 bg-gradient-to-b from-[#111217] to-[#0b0b0e] overflow-hidden">
+      <div id="collectionsHeaderContent" class="max-w-7xl mx-auto space-y-4">
+        <!-- Tag Pill with slide entrance -->
+        <div class="anim-tag inline-flex items-center space-x-2 text-[11px] font-mono tracking-widest text-[#d4af37] uppercase bg-[#d4af37]/10 border border-[#d4af37]/20 px-3 py-1 rounded-full">
+          <span>PHOTOGRAPHIC ARCHIVES</span>
+          <span>•</span>
+          <span class="text-zinc-400">LOCATIONS OVERVIEW</span>
+        </div>
+        <!-- Main Title with cinematic blur & scale-up entrance -->
+        <h1 class="anim-heading text-4xl sm:text-6xl font-sans font-black text-white tracking-tight leading-[1.15]">
+          地景光影分類作品集
+        </h1>
+        <!-- Description with subtle delay slide entrance -->
+        <p class="anim-desc text-zinc-400 text-sm sm:text-base font-sans max-w-2xl leading-relaxed">
+          以地理空間為經緯的影像檔案庫。收錄台灣各地海濱灘塗、百岳稜線與老城街巷的光質紀實。點選下方主題進入專屬攝影展頁。
+        </p>
+
+        <!-- AI Curatorial Action in Header -->
+        <div class="anim-cta pt-2 flex items-center gap-3">
+          <button onclick="openAiCuratorModal()" class="inline-flex items-center space-x-2 text-xs font-mono tracking-wider px-4 py-2 rounded-full bg-gradient-to-r from-[#d4af37]/20 to-amber-500/10 border border-[#d4af37]/40 text-[#f5df97] hover:border-[#d4af37] hover:text-white transition-all shadow-[0_0_20px_rgba(212,175,55,0.15)] group">
+            <span class="w-2 h-2 rounded-full bg-[#d4af37] animate-ping"></span>
+            <span>✦ AI 策展論述生成器</span>
+            <span class="text-zinc-500 group-hover:text-zinc-300 transition-colors">GEMINI POWERED</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Categories Grid -->
+    <section class="max-w-7xl mx-auto px-6 sm:px-10 py-16 w-full">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        <!-- Category Card 1: 高美濕地 (Featured) -->
+        <div onclick="switchView('gaomei')" class="category-card group bg-[#121318] border border-[#d4af37]/40 rounded-sm overflow-hidden cursor-pointer flex flex-col justify-between">
+          <div class="relative w-full aspect-[4/3] overflow-hidden bg-black/60">
+            <img src="IMG_20260910_143154_batch_3_1789641786114.jpg" 
+                 alt="高美濕地" 
+                 class="cat-img w-full h-full object-cover"
+                 onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1509233725247-49e657c54213?auto=format&fit=crop&w=800&q=80';">
+            <div class="absolute top-3 right-3 bg-black/70 backdrop-blur-sm text-[#d4af37] border border-[#d4af37]/30 text-[10px] font-mono px-2.5 py-1 rounded-full">
+              FEATURED · 07 PLATES
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+          </div>
+          <div class="p-6 space-y-2 flex-grow flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] font-mono text-[#d4af37] tracking-widest uppercase">TAICHUNG COAST</span>
+              <h2 class="text-2xl font-sans font-bold text-white group-hover:text-[#d4af37] transition-colors mt-1">
+                高美濕地 · 潮汐與光影
+              </h2>
+              <p class="text-xs text-zinc-400 font-sans mt-2 leading-relaxed">
+                正午灘地草澤、暮色風車大道至藍調時刻。捕捉海水暫歇時的水鏡與微光。
+              </p>
+            </div>
+            <div class="pt-5 border-t border-white/5 flex items-center justify-between text-xs font-mono text-[#d4af37]">
+              <span>EXPLORE ALBUM</span>
+              <span class="group-hover:translate-x-1.5 transition-transform duration-300">→</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Card 2: 合歡山徑 -->
+        <div onclick="switchView('hehuan')" class="category-card group bg-[#121318] border border-white/10 rounded-sm overflow-hidden cursor-pointer flex flex-col justify-between">
+          <div class="relative w-full aspect-[4/3] overflow-hidden bg-black/60">
+            <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80" 
+                 alt="合歡山" 
+                 class="cat-img w-full h-full object-cover">
+            <div class="absolute top-3 right-3 bg-black/70 backdrop-blur-sm text-zinc-300 border border-white/20 text-[10px] font-mono px-2.5 py-1 rounded-full">
+              06 PLATES
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+          </div>
+          <div class="p-6 space-y-2 flex-grow flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] font-mono text-zinc-500 tracking-widest uppercase">CENTRAL MOUNTAINS</span>
+              <h2 class="text-2xl font-sans font-bold text-white group-hover:text-[#d4af37] transition-colors mt-1">
+                合歡山徑 · 雲霧與脊線
+              </h2>
+              <p class="text-xs text-zinc-400 font-sans mt-2 leading-relaxed">
+                海拔三千公尺的箭竹草坡、流雲與暮光殘雪，凝結高山冷峻清澈的輪廓。
+              </p>
+            </div>
+            <div class="pt-5 border-t border-white/5 flex items-center justify-between text-xs font-mono text-zinc-400 group-hover:text-[#d4af37] transition-colors">
+              <span>EXPLORE ALBUM</span>
+              <span class="group-hover:translate-x-1.5 transition-transform duration-300">→</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Card 3: 舊埕記憶 -->
+        <div onclick="switchView('oldtown')" class="category-card group bg-[#121318] border border-white/10 rounded-sm overflow-hidden cursor-pointer flex flex-col justify-between">
+          <div class="relative w-full aspect-[4/3] overflow-hidden bg-black/60">
+            <img src="https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=800&q=80" 
+                 alt="舊埕記憶" 
+                 class="cat-img w-full h-full object-cover">
+            <div class="absolute top-3 right-3 bg-black/70 backdrop-blur-sm text-zinc-300 border border-white/20 text-[10px] font-mono px-2.5 py-1 rounded-full">
+              06 PLATES
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+          </div>
+          <div class="p-6 space-y-2 flex-grow flex flex-col justify-between">
+            <div>
+              <span class="text-[10px] font-mono text-zinc-500 tracking-widest uppercase">HISTORIC COURTYARD</span>
+              <h2 class="text-2xl font-sans font-bold text-white group-hover:text-[#d4af37] transition-colors mt-1">
+                舊埕記憶 · 紅磚與街巷
+              </h2>
+              <p class="text-xs text-zinc-400 font-sans mt-2 leading-relaxed">
+                午後陽光斜切老街道廟埕與亭仔腳，紅磚木造建築與歷史交錯的歲月痕跡。
+              </p>
+            </div>
+            <div class="pt-5 border-t border-white/5 flex items-center justify-between text-xs font-mono text-zinc-400 group-hover:text-[#d4af37] transition-colors">
+              <span>EXPLORE ALBUM</span>
+              <span class="group-hover:translate-x-1.5 transition-transform duration-300">→</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <!-- ==================== VIEW 2: GAOMEI WETLANDS DEDICATED PAGE (高美濕地專屬攝影頁) ==================== -->
+  <div id="view-gaomei" class="hidden flex-grow flex-col">
+    
+    <!-- Top Breadcrumb Switch Bar -->
+    <div class="w-full bg-[#0d0e12] border-b border-white/10 px-6 sm:px-10 py-3 flex items-center justify-between text-[11px] font-mono">
+      <div class="flex items-center space-x-2 text-zinc-400">
+        <button onclick="switchView('collections')" class="hover:text-[#d4af37] transition-colors">← 返回所有攝影集</button>
+        <span class="text-zinc-700">|</span>
+        <span class="text-white">專題 01：高美濕地光影紀實</span>
+      </div>
+      <div class="text-zinc-500 hidden sm:block">
+        TAICHUNG, TAIWAN · 07 PLATES
+      </div>
+    </div>
+
+    <!-- Hero Section with entrance animation on switch -->
+    <section class="relative w-full border-b border-white/10 overflow-hidden bg-gradient-to-b from-[#111217] via-[#0b0b0e] to-[#0b0b0e]">
+      <div class="absolute -top-32 -left-20 w-96 h-96 bg-[#d4af37]/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div class="absolute top-1/2 right-0 w-80 h-80 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+      <div id="gaomeiHeroContent" class="max-w-7xl mx-auto px-6 sm:px-10 py-16 sm:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        
+        <!-- Hero Left Typography -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="anim-tag inline-flex items-center space-x-3 text-[11px] font-mono tracking-widest text-[#d4af37] uppercase bg-[#d4af37]/10 border border-[#d4af37]/20 px-3.5 py-1 rounded-full">
+            <span>GAOMEI WETLAND ARCHIVE</span>
+            <span>•</span>
+            <span class="text-zinc-400">TAICHUNG COAST</span>
+          </div>
+
+          <h1 class="anim-heading text-4xl sm:text-6xl lg:text-7xl font-sans font-black text-white tracking-tight leading-[1.12]">
+            高美潮汐<br>
+            <span class="text-zinc-400 font-bold">與光影紀實</span>
+          </h1>
+
+          <p class="anim-desc text-sm sm:text-base text-zinc-400 max-w-xl font-sans leading-relaxed font-normal">
+            從正午草澤到藍調魔幻時刻的高美灘岸光影記錄。滑鼠移入相片可瀏覽色彩與簡述。
+          </p>
+
+          <div class="anim-cta pt-2 flex flex-wrap items-center gap-4 text-xs font-mono">
+            <a href="#gallery-gaomei" class="px-6 py-3 bg-white text-black font-semibold rounded-full hover:bg-[#d4af37] transition-all flex items-center gap-2 group">
+              <span>瀏覽作品 (07)</span>
+              <span class="group-hover:translate-x-0.5 transition-transform">↓</span>
+            </a>
+            <button onclick="openZoom(0)" class="px-5 py-3 border border-white/20 text-zinc-300 hover:text-white hover:border-white rounded-full transition-colors flex items-center gap-2">
+              <span>從首張開始欣賞</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Hero Right Preview Frame -->
+        <div class="lg:col-span-5 flex justify-center lg:justify-end anim-desc">
+          <div class="relative w-full max-w-sm aspect-[4/5] p-2 bg-gradient-to-b from-white/10 to-white/5 rounded-sm border border-white/10 shadow-2xl group cursor-pointer" onclick="openZoom(0)">
+            <div class="relative w-full h-full overflow-hidden bg-black/60">
+              <img 
+                id="heroFeaturedImg" 
+                src="IMG_20260910_143154_batch_3_1789641786114.jpg" 
+                alt="Featured - 守望"
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 filter grayscale-[30%] group-hover:grayscale-0"
+                onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1509233725247-49e657c54213?auto=format&fit=crop&w=1200&q=80';"
+              >
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+              
+              <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between font-mono text-xs">
+                <div>
+                  <span class="text-[10px] text-[#d4af37] tracking-widest block uppercase">FEATURED PLATE</span>
+                  <span class="text-white font-bold text-sm tracking-wide">01. 守望 [THE LIGHTHOUSE]</span>
+                </div>
+                <span class="text-zinc-400 group-hover:text-white transition-colors text-sm">↗</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Prologue -->
+    <section class="w-full border-b border-white/10 py-20 px-6 sm:px-10 bg-[#0d0e12]">
+      <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div class="lg:col-span-4 space-y-3 reveal-on-scroll">
+          <span class="text-xs font-mono text-[#d4af37] tracking-widest uppercase">01 / PROLOGUE</span>
+          <h2 class="text-2xl sm:text-3xl font-sans font-bold text-white tracking-tight leading-snug">
+            在潮退與落日之間<br>
+            <span class="text-zinc-500 font-medium">重構地景的時間刻度</span>
+          </h2>
+        </div>
+        <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-8 text-sm text-zinc-400 font-sans leading-relaxed">
+          <div class="space-y-4 reveal-on-scroll delay-100">
+            <p>
+              清水海濱的高美濕地，是一面由泥灘、莞草與洋流日復一日交織出的自然水鏡。每一次退潮，海平面退至數百米之外，留下蜿蜒的水痕與細膩的泥質肌理。
+            </p>
+            <p>
+              八角燈塔佇立在堤防邊緣，如同一枚錨點；木棧道向海平面筆直延伸，引導視線穿過草澤浮島，抵達海天相連的無際灘塗。
+            </p>
+          </div>
+          <div class="space-y-4 reveal-on-scroll delay-200">
+            <p>
+              午後烈日下的海浪泛著碎銀般的烈光，而當暮色降臨，天際在十餘分鐘內自暖橘過渡至靜謐的淡紫與深藍，風力發電機在此化為一列優雅的剪影。
+            </p>
+            <p>
+              本輯七幅影像紀錄了這片海灣在不同光質下的呼吸節奏——凝視風的軌跡，捕捉海水暫歇時的微光凝結。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gallery Grid -->
+    <main id="gallery-gaomei" class="flex-grow max-w-7xl mx-auto px-6 py-16 w-full">
+      <div class="reveal-on-scroll mb-12 flex items-baseline justify-between border-b border-white/10 pb-4">
+        <div>
+          <span class="text-[10px] font-mono text-[#d4af37] tracking-widest uppercase block mb-1">SELECTED ARCHIVES</span>
+          <p class="text-xs font-mono text-zinc-400 uppercase tracking-widest">
+            07 PHOTOGRAPHIC PLATES · HOVER TO REVEAL
+          </p>
+        </div>
+        <span class="text-xs font-mono text-zinc-500 hidden sm:inline">COASTAL HABITAT · TAICHUNG</span>
+      </div>
+
+      <!-- Tympanus Grid Layout -->
+      <div id="galleryGridGaomei" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+
+      <!-- Field Notes Section -->
+      <section class="mt-24 pt-16 border-t border-white/10">
+        <div class="reveal-on-scroll max-w-2xl mb-12">
+          <span class="text-xs font-mono text-[#d4af37] tracking-widest uppercase block mb-2">02 / FIELD OBSERVATIONS</span>
+          <h2 class="text-2xl sm:text-3xl font-sans font-bold text-white tracking-tight">海濱光景的觀察札記</h2>
+          <p class="text-xs sm:text-sm text-zinc-400 font-sans mt-2">透過快門定格的瞬刻，梳理三個屬於高美濕地特有的光影面向。</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="field-note-card reveal-on-scroll group relative bg-[#121318] border border-white/10 p-7 rounded-sm flex flex-col justify-between overflow-hidden cursor-pointer" onclick="openZoom(0)">
+            <div class="note-bar absolute top-0 left-0 h-[2px] bg-gradient-to-r from-[#d4af37] via-amber-300 to-transparent"></div>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between font-mono text-xs text-[#d4af37]">
+                <span class="tracking-widest font-semibold flex items-center gap-2">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#d4af37] group-hover:scale-150 transition-transform"></span>NOTE 01
+                </span>
+                <span class="text-zinc-500 group-hover:text-zinc-300 transition-colors">14:30 CST</span>
+              </div>
+              <h3 class="text-lg sm:text-xl font-sans font-bold text-white group-hover:text-[#d4af37] transition-colors tracking-tight">草澤浮島與泥灘光澤</h3>
+              <p class="text-xs sm:text-sm text-zinc-400 group-hover:text-zinc-200 transition-colors font-sans leading-relaxed">
+                正午剛過，退潮留下高低起伏的泥質沙洲，雲林莞草叢宛如綠色浮島在水窪間錯落。強烈的高角度頂光穿透淺水，泥灘泛著如金屬般的薄層反光。
+              </p>
+            </div>
+            <div class="note-action pt-6 flex items-center justify-between text-xs font-mono text-[#d4af37] border-t border-white/5 mt-4">
+              <span class="tracking-wider uppercase text-[11px]">READ OBSERVATION</span>
+              <span class="group-hover:translate-x-1.5 transition-transform duration-300">→</span>
+            </div>
+          </div>
+
+          <div class="field-note-card reveal-on-scroll delay-100 group relative bg-[#121318] border border-white/10 p-7 rounded-sm flex flex-col justify-between overflow-hidden cursor-pointer" onclick="openZoom(2)">
+            <div class="note-bar absolute top-0 left-0 h-[2px] bg-gradient-to-r from-[#d4af37] via-amber-300 to-transparent"></div>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between font-mono text-xs text-[#d4af37]">
+                <span class="tracking-widest font-semibold flex items-center gap-2">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#d4af37] group-hover:scale-150 transition-transform"></span>NOTE 02
+                </span>
+                <span class="text-zinc-500 group-hover:text-zinc-300 transition-colors">18:00 CST</span>
+              </div>
+              <h3 class="text-lg sm:text-xl font-sans font-bold text-white group-hover:text-[#d4af37] transition-colors tracking-tight">風車大道與暮色逆光</h3>
+              <p class="text-xs sm:text-sm text-zinc-400 group-hover:text-zinc-200 transition-colors font-sans leading-relaxed">
+                太陽貼近海平面的最後半小時，巨型風力發電機在金黃逆光中化為極簡的幾何線條。冷風自海口貫入，轉動的扇葉切割出光與空氣的節奏。
+              </p>
+            </div>
+            <div class="note-action pt-6 flex items-center justify-between text-xs font-mono text-[#d4af37] border-t border-white/5 mt-4">
+              <span class="tracking-wider uppercase text-[11px]">READ OBSERVATION</span>
+              <span class="group-hover:translate-x-1.5 transition-transform duration-300">→</span>
+            </div>
+          </div>
+
+          <div class="field-note-card reveal-on-scroll delay-200 group relative bg-[#121318] border border-white/10 p-7 rounded-sm flex flex-col justify-between overflow-hidden cursor-pointer" onclick="openZoom(4)">
+            <div class="note-bar absolute top-0 left-0 h-[2px] bg-gradient-to-r from-[#d4af37] via-amber-300 to-transparent"></div>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between font-mono text-xs text-[#d4af37]">
+                <span class="tracking-widest font-semibold flex items-center gap-2">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#d4af37] group-hover:scale-150 transition-transform"></span>NOTE 03
+                </span>
+                <span class="text-zinc-500 group-hover:text-zinc-300 transition-colors">18:30 CST</span>
+              </div>
+              <h3 class="text-lg sm:text-xl font-sans font-bold text-white group-hover:text-[#d4af37] transition-colors tracking-tight">藍調時刻的岸際浪沫</h3>
+              <p class="text-xs sm:text-sm text-zinc-400 group-hover:text-zinc-200 transition-colors font-sans leading-relaxed">
+                太陽落入地平線後的二十分鐘，天幕呈現通透冷冽的青藍。岸邊消波塊沈靜迎擊回湧的浪花，天海交界處殘留一抹溫柔粉橘，形成強烈冷暖對比。
+              </p>
+            </div>
+            <div class="note-action pt-6 flex items-center justify-between text-xs font-mono text-[#d4af37] border-t border-white/5 mt-4">
+              <span class="tracking-wider uppercase text-[11px]">READ OBSERVATION</span>
+              <span class="group-hover:translate-x-1.5 transition-transform duration-300">→</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ==================== VIEW 3: HEHUAN RIDGE DEDICATED PAGE (合歡山徑專屬攝影頁) ==================== -->
+  <div id="view-hehuan" class="hidden flex-grow flex-col">
+    <div class="w-full bg-[#0d0e12] border-b border-white/10 px-6 sm:px-10 py-3 flex items-center justify-between text-[11px] font-mono">
+      <div class="flex items-center space-x-2 text-zinc-400">
+        <button onclick="switchView('collections')" class="hover:text-[#d4af37] transition-colors">← 返回所有攝影集</button>
+        <span class="text-zinc-700">|</span>
+        <span class="text-white">專題 02：合歡山徑 · 雲霧與脊線</span>
+      </div>
+      <div class="text-zinc-500 hidden sm:block">
+        CENTRAL MOUNTAIN RANGE · 06 PLATES
+      </div>
+    </div>
+
+    <!-- Hehuan Hero -->
+    <section class="relative w-full border-b border-white/10 overflow-hidden bg-gradient-to-b from-[#111217] via-[#0b0b0e] to-[#0b0b0e]">
+      <div class="absolute -top-32 -left-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+      <div id="hehuanHeroContent" class="max-w-7xl mx-auto px-6 sm:px-10 py-16 sm:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-7 space-y-6">
+          <div class="anim-tag inline-flex items-center space-x-3 text-[11px] font-mono tracking-widest text-[#d4af37] uppercase bg-[#d4af37]/10 border border-[#d4af37]/20 px-3.5 py-1 rounded-full">
+            <span>HEHUAN RIDGE ARCHIVE</span>
+            <span>•</span>
+            <span class="text-zinc-400">ELEVATION 3,417M</span>
+          </div>
+
+          <h1 class="anim-heading text-4xl sm:text-6xl lg:text-7xl font-sans font-black text-white tracking-tight leading-[1.12]">
+            雲海翻湧<br>
+            <span class="text-zinc-400 font-bold">與群峰脊線</span>
+          </h1>
+
+          <p class="anim-desc text-sm sm:text-base text-zinc-400 max-w-xl font-sans leading-relaxed font-normal">
+            海拔三千公尺之上的稀薄冷冽光質。箭竹草浪在狂風中起伏，暮光將岩壁染成冷銅，凝望島嶼屋脊的磅礡沉寂。
+          </p>
+
+          <div class="anim-cta pt-2 flex flex-wrap items-center gap-4 text-xs font-mono">
+            <a href="#gallery-hehuan" class="px-6 py-3 bg-white text-black font-semibold rounded-full hover:bg-[#d4af37] transition-all flex items-center gap-2 group">
+              <span>瀏覽合歡作品 (06)</span>
+              <span class="group-hover:translate-x-0.5 transition-transform">↓</span>
+            </a>
+            <button onclick="openZoom(0)" class="px-5 py-3 border border-white/20 text-zinc-300 hover:text-white hover:border-white rounded-full transition-colors flex items-center gap-2">
+              <span>開始欣賞</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 flex justify-center lg:justify-end anim-desc">
+          <div class="relative w-full max-w-sm aspect-[4/5] p-2 bg-gradient-to-b from-white/10 to-white/5 rounded-sm border border-white/10 shadow-2xl group cursor-pointer" onclick="openZoom(0)">
+            <div class="relative w-full h-full overflow-hidden bg-black/60">
+              <img 
+                src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80" 
+                alt="Featured - 合歡主峰"
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 filter grayscale-[30%] group-hover:grayscale-0"
+              >
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+              <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between font-mono text-xs">
+                <div>
+                  <span class="text-[10px] text-[#d4af37] tracking-widest block uppercase">FEATURED PLATE</span>
+                  <span class="text-white font-bold text-sm tracking-wide">01. 脊線之巔 [THE RIDGE]</span>
+                </div>
+                <span class="text-zinc-400 group-hover:text-white transition-colors text-sm">↗</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hehuan Gallery -->
+    <main id="gallery-hehuan" class="flex-grow max-w-7xl mx-auto px-6 py-16 w-full">
+      <div class="reveal-on-scroll mb-12 flex items-baseline justify-between border-b border-white/10 pb-4">
+        <div>
+          <span class="text-[10px] font-mono text-[#d4af37] tracking-widest uppercase block mb-1">SELECTED ARCHIVES</span>
+          <p class="text-xs font-mono text-zinc-400 uppercase tracking-widest">
+            06 PHOTOGRAPHIC PLATES · HOVER TO REVEAL
+          </p>
+        </div>
+        <span class="text-xs font-mono text-zinc-500 hidden sm:inline">ALPINE SUMMIT · TAIWAN</span>
+      </div>
+
+      <div id="galleryGridHehuan" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </main>
+  </div>
+
+  <!-- ==================== VIEW 4: OLD TOWN DEDICATED PAGE (舊埕記憶專屬攝影頁) ==================== -->
+  <div id="view-oldtown" class="hidden flex-grow flex-col">
+    <div class="w-full bg-[#0d0e12] border-b border-white/10 px-6 sm:px-10 py-3 flex items-center justify-between text-[11px] font-mono">
+      <div class="flex items-center space-x-2 text-zinc-400">
+        <button onclick="switchView('collections')" class="hover:text-[#d4af37] transition-colors">← 返回所有攝影集</button>
+        <span class="text-zinc-700">|</span>
+        <span class="text-white">專題 03：舊埕記憶 · 紅磚與街巷</span>
+      </div>
+      <div class="text-zinc-500 hidden sm:block">
+        HISTORIC COURTYARDS · 06 PLATES
+      </div>
+    </div>
+
+    <!-- Oldtown Hero -->
+    <section class="relative w-full border-b border-white/10 overflow-hidden bg-gradient-to-b from-[#111217] via-[#0b0b0e] to-[#0b0b0e]">
+      <div class="absolute -top-32 -left-20 w-96 h-96 bg-amber-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+      <div id="oldtownHeroContent" class="max-w-7xl mx-auto px-6 sm:px-10 py-16 sm:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-7 space-y-6">
+          <div class="anim-tag inline-flex items-center space-x-3 text-[11px] font-mono tracking-widest text-[#d4af37] uppercase bg-[#d4af37]/10 border border-[#d4af37]/20 px-3.5 py-1 rounded-full">
+            <span>OLD TOWN MEMORIES</span>
+            <span>•</span>
+            <span class="text-zinc-400">HISTORIC RETROSPECTIVE</span>
+          </div>
+
+          <h1 class="anim-heading text-4xl sm:text-6xl lg:text-7xl font-sans font-black text-white tracking-tight leading-[1.12]">
+            舊埕紅磚<br>
+            <span class="text-zinc-400 font-bold">與光陰刻痕</span>
+          </h1>
+
+          <p class="anim-desc text-sm sm:text-base text-zinc-400 max-w-xl font-sans leading-relaxed font-normal">
+            斜陽貫入老廟埕瓦縫與騎樓梁柱。歲月剝蝕的磚牆留存了時光溫潤的微光，在現代節奏中凝結一抹安靜的日常記憶。
+          </p>
+
+          <div class="anim-cta pt-2 flex flex-wrap items-center gap-4 text-xs font-mono">
+            <a href="#gallery-oldtown" class="px-6 py-3 bg-white text-black font-semibold rounded-full hover:bg-[#d4af37] transition-all flex items-center gap-2 group">
+              <span>瀏覽舊埕作品 (06)</span>
+              <span class="group-hover:translate-x-0.5 transition-transform">↓</span>
+            </a>
+            <button onclick="openZoom(0)" class="px-5 py-3 border border-white/20 text-zinc-300 hover:text-white hover:border-white rounded-full transition-colors flex items-center gap-2">
+              <span>開始欣賞</span>
+              <span>→</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 flex justify-center lg:justify-end anim-desc">
+          <div class="relative w-full max-w-sm aspect-[4/5] p-2 bg-gradient-to-b from-white/10 to-white/5 rounded-sm border border-white/10 shadow-2xl group cursor-pointer" onclick="openZoom(0)">
+            <div class="relative w-full h-full overflow-hidden bg-black/60">
+              <img 
+                src="https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=1200&q=80" 
+                alt="Featured - 老街暮色"
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 filter grayscale-[30%] group-hover:grayscale-0"
+              >
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+              <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between font-mono text-xs">
+                <div>
+                  <span class="text-[10px] text-[#d4af37] tracking-widest block uppercase">FEATURED PLATE</span>
+                  <span class="text-white font-bold text-sm tracking-wide">01. 埕前斜陽 [COURTYARD SUN]</span>
+                </div>
+                <span class="text-zinc-400 group-hover:text-white transition-colors text-sm">↗</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Oldtown Gallery -->
+    <main id="gallery-oldtown" class="flex-grow max-w-7xl mx-auto px-6 py-16 w-full">
+      <div class="reveal-on-scroll mb-12 flex items-baseline justify-between border-b border-white/10 pb-4">
+        <div>
+          <span class="text-[10px] font-mono text-[#d4af37] tracking-widest uppercase block mb-1">SELECTED ARCHIVES</span>
+          <p class="text-xs font-mono text-zinc-400 uppercase tracking-widest">
+            06 PHOTOGRAPHIC PLATES · HOVER TO REVEAL
+          </p>
+        </div>
+        <span class="text-xs font-mono text-zinc-500 hidden sm:inline">ALLEYWAYS & RED BRICK</span>
+      </div>
+
+      <div id="galleryGridOldtown" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </main>
+  </div>
+
+  <!-- TYMPANUS ZOOM CONTENT DETAIL VIEW (Pop-out Stage) -->
+  <div id="zoomDetailModal" class="fixed inset-0 z-50 hidden opacity-0 transition-opacity duration-300 bg-black/95 flex flex-col justify-between">
+    
+    <!-- Top Modal Navigation Bar -->
+    <div class="px-8 py-6 flex items-center justify-between border-b border-white/10">
+      <div class="flex items-center space-x-3 text-xs font-mono">
+        <span id="detailNumber" class="text-[#d4af37] font-bold text-sm">01</span>
+        <span class="text-zinc-600">/</span>
+        <span id="detailTotal" class="text-zinc-400">07</span>
+      </div>
+
+      <!-- Close Button (✕) -->
+      <button onclick="closeZoom()" class="text-zinc-400 hover:text-white text-xs font-mono tracking-widest uppercase border border-white/20 hover:border-white px-4 py-1.5 rounded-full transition-all flex items-center gap-2">
+        <span>Close</span>
+        <span class="text-sm">✕</span>
+      </button>
+    </div>
+
+    <!-- Center Stage: Enlarged Image and Short Story -->
+    <div class="flex-1 flex flex-col lg:flex-row items-center justify-center p-6 lg:p-12 gap-8 max-w-6xl mx-auto w-full overflow-y-auto">
+      
+      <!-- Big Expanded Photo -->
+      <div class="w-full lg:w-3/5 h-[48vh] sm:h-[62vh] flex items-center justify-center relative">
+        <img 
+          id="detailImage" 
+          src="" 
+          alt="Enlarged artwork" 
+          class="max-w-full max-h-full object-contain rounded-sm shadow-2xl transition-all duration-300"
+        >
+      </div>
+
+      <!-- Concise Information Panel -->
+      <div class="w-full lg:w-2/5 space-y-5 text-left">
+        <div>
+          <span id="detailIndexTag" class="text-xs font-mono text-[#d4af37] tracking-widest uppercase">PLATE NO. 01</span>
+          <h2 id="detailTitle" class="text-3xl sm:text-4xl font-sans font-bold text-white tracking-wide mt-1">
+            守望
+          </h2>
+          <p id="detailSubtitle" class="text-xs font-mono text-zinc-500 mt-1 uppercase tracking-wider">
+            The Lighthouse & Coastal Marsh
+          </p>
+        </div>
+
+        <div class="h-[1px] w-12 bg-[#d4af37]/60"></div>
+
+        <!-- Short and Direct Summary -->
+        <p id="detailSummary" class="text-sm text-zinc-300 font-sans leading-relaxed">
+          紅白燈塔佇立海濱，木棧道蜿蜒穿入草澤。
+        </p>
+
+        <!-- AI Critique Button and Container -->
+        <div class="pt-2">
+          <button id="btnAiCritique" onclick="generateAiCritique()" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded bg-white/5 border border-[#d4af37]/30 hover:border-[#d4af37] text-[#e8cf7a] text-xs font-mono tracking-wider transition-all">
+            <span class="flex items-center gap-2">
+              <span class="text-sm">✦</span>
+              <span>AI 光影評析與構圖深讀</span>
+            </span>
+            <span class="text-[10px] text-zinc-400 uppercase">ANALYZE</span>
+          </button>
+
+          <!-- AI Critique Output Box -->
+          <div id="aiCritiqueBox" class="hidden mt-3 p-4 rounded bg-[#0b0c10] border border-white/10 text-xs text-zinc-300 font-sans space-y-2.5 max-h-48 overflow-y-auto">
+            <div class="flex items-center justify-between text-[10px] font-mono text-[#d4af37] border-b border-white/10 pb-1.5">
+              <span>CURATORIAL INSIGHT</span>
+              <span id="aiCritiqueStatus">READY</span>
+            </div>
+            <div id="aiCritiqueContent" class="leading-relaxed whitespace-pre-line text-zinc-300"></div>
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="pt-4 flex items-center space-x-3 text-xs font-mono">
+          <button onclick="changePhoto(-1)" class="px-4 py-2 border border-white/15 hover:border-white text-zinc-300 hover:text-white rounded transition-colors">
+            ← Prev
+          </button>
+          <button onclick="changePhoto(1)" class="px-4 py-2 border border-white/15 hover:border-white text-zinc-300 hover:text-white rounded transition-colors">
+            Next →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Status Bar -->
+    <div class="px-8 py-4 border-t border-white/10 flex items-center justify-between text-[11px] font-mono text-zinc-500">
+      <span>[ESC] 退出 · [← / →] 切換</span>
+      <span id="detailFilename" class="text-zinc-600">IMG_20260910...</span>
+    </div>
+  </div>
+
+  <!-- ==================== AI MODAL: 策展論述生成器 ==================== -->
+  <div id="aiCuratorModal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6">
+    <div class="bg-[#121318] border border-[#d4af37]/30 rounded-sm max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl relative">
+      <div class="flex items-start justify-between border-b border-white/10 pb-4">
+        <div>
+          <span class="text-[10px] font-mono text-[#d4af37] tracking-widest uppercase">GEMINI PRO CURATION</span>
+          <h3 class="text-2xl font-sans font-bold text-white tracking-tight mt-0.5">
+            ✦ AI 光影策展論述生成
+          </h3>
+          <p class="text-xs text-zinc-400 mt-1 font-sans">
+            輸入自訂策展風格或關鍵字，由 Gemini 撰寫具詩意與專業深度的攝影展引言。
+          </p>
+        </div>
+        <button onclick="closeAiCuratorModal()" class="text-zinc-500 hover:text-white text-lg font-mono">✕</button>
+      </div>
+
+      <!-- Controls -->
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-mono text-zinc-400 mb-2">展覽主題 / 地景視角</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="setCuratorTopic('高美濕地：潮汐與微光的水鏡紀實')" class="topic-btn px-3 py-2 text-xs font-mono border border-white/15 hover:border-[#d4af37] text-zinc-300 rounded text-left active">
+              高美濕地水鏡
+            </button>
+            <button onclick="setCuratorTopic('合歡群峰：三千公尺冷冽光質與脊線')" class="topic-btn px-3 py-2 text-xs font-mono border border-white/15 hover:border-[#d4af37] text-zinc-300 rounded text-left">
+              合歡山脊線
+            </button>
+            <button onclick="setCuratorTopic('舊埕記憶：廟埕、斜陽紅磚與時光沉積')" class="topic-btn px-3 py-2 text-xs font-mono border border-white/15 hover:border-[#d4af37] text-zinc-300 rounded text-left">
+              舊埕時光刻度
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label for="aiCustomPrompt" class="block text-xs font-mono text-zinc-400 mb-2">補充策展語氣或焦點（選填）</label>
+          <input type="text" id="aiCustomPrompt" placeholder="例如：強調冷暖色調交融、光線沉思與時間凝滯感..." class="w-full bg-[#0b0b0e] border border-white/15 rounded px-3 py-2.5 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-[#d4af37]">
+        </div>
+
+        <button id="btnGenerateCurator" onclick="runAiCuratorGeneration()" class="w-full py-3 bg-gradient-to-r from-[#d4af37] to-amber-600 text-black font-bold text-xs font-mono tracking-widest rounded hover:opacity-95 transition-opacity flex items-center justify-center gap-2">
+          <span>GENERATE CURATORIAL STATEMENT</span>
+          <span>✦</span>
+        </button>
+      </div>
+
+      <!-- Result Area -->
+      <div id="aiCuratorResultBox" class="hidden p-5 bg-[#0b0c10] border border-white/10 rounded space-y-3">
+        <div class="flex items-center justify-between text-[11px] font-mono text-[#d4af37]">
+          <span>STATEMENT PREVIEW</span>
+          <button onclick="copyAiStatement()" class="text-zinc-400 hover:text-white text-[10px]">複製文字 [COPY]</button>
+        </div>
+        <p id="aiCuratorResultText" class="text-xs sm:text-sm text-zinc-200 leading-relaxed font-sans whitespace-pre-line"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== FLOATING AI CURATOR CHAT WIDGET ==================== -->
+  <div class="fixed bottom-6 right-6 z-40">
+    <div id="aiChatPanel" class="hidden mb-3 w-80 sm:w-96 bg-[#111216] border border-[#d4af37]/40 rounded-sm shadow-2xl p-4 flex flex-col space-y-3 font-sans">
+      <div class="flex items-center justify-between border-b border-white/10 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-[#d4af37] animate-pulse"></span>
+          <span class="text-xs font-mono font-bold text-white">LENS AI 策展問答助理</span>
+        </div>
+        <button onclick="toggleAiChat()" class="text-zinc-500 hover:text-white text-xs font-mono">✕</button>
+      </div>
+      <p class="text-[11px] text-zinc-400 font-sans">
+        隨時詢問高美潮汐、合歡雲海或舊埕老街的拍攝光質與快門觀點。
+      </p>
+
+      <div class="flex flex-wrap gap-1.5 pt-1">
+        <button onclick="askQuickPrompt('高美濕地什麼時候拍水鏡最美？')" class="text-[10px] font-mono bg-white/5 border border-white/10 hover:border-[#d4af37] text-zinc-300 px-2 py-1 rounded">
+          高美水鏡時機？
+        </button>
+        <button onclick="askQuickPrompt('合歡山拍雲海與銀河要如何設定快門光圈？')" class="text-[10px] font-mono bg-white/5 border border-white/10 hover:border-[#d4af37] text-zinc-300 px-2 py-1 rounded">
+          合歡雲海光圈？
+        </button>
+        <button onclick="askQuickPrompt('舊埕老巷紅磚要如何捕捉斜陽光質感？')" class="text-[10px] font-mono bg-white/5 border border-white/10 hover:border-[#d4af37] text-zinc-300 px-2 py-1 rounded">
+          舊埕紅磚光影？
+        </button>
+      </div>
+
+      <div id="aiChatMessages" class="h-44 overflow-y-auto space-y-2 p-2 rounded bg-[#0b0c10] border border-white/10 text-xs">
+        <div class="text-zinc-400 text-[11px] leading-relaxed">
+          ✦ 您好！我是本展覽的 AI 策展助理。您可以點選上方快捷提問，或直接輸入關於拍攝構圖、天候光質的任何問題。
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 pt-1">
+        <input type="text" id="aiChatInput" placeholder="請輸入攝影或策展問題..." class="flex-grow bg-[#0b0b0e] border border-white/15 rounded px-2.5 py-1.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#d4af37]" onkeydown="if(event.key === 'Enter') sendAiChatMessage()">
+        <button onclick="sendAiChatMessage()" class="px-3 py-1.5 bg-[#d4af37] text-black font-bold text-xs font-mono rounded hover:bg-amber-400">
+          傳送
+        </button>
+      </div>
+    </div>
+
+    <button onclick="toggleAiChat()" class="float-right flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#121318] border border-[#d4af37]/50 text-[#f5df97] hover:text-white hover:border-[#d4af37] shadow-xl text-xs font-mono transition-transform hover:scale-105">
+      <span class="w-2 h-2 rounded-full bg-[#d4af37]"></span>
+      <span>✦ AI 策展對話</span>
+    </button>
+  </div>
+
+  <script>
+    /* Multi-Album Photo Database */
+    const photoAlbums = {
+      gaomei: [
+        {
+          id: "01",
+          filename: "IMG_20260910_143154_batch_3_1789641786114.jpg",
+          title: "守望",
+          titleEn: "The Lighthouse",
+          desc: "高美紅白八角燈塔佇立海濱，木棧道蜿蜒穿入草澤。",
+          fallback: "https://images.unsplash.com/photo-1509233725247-49e657c54213?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "02",
+          filename: "IMG_20260910_143349_batch_4_1789641786711.jpg",
+          title: "浮嶼",
+          titleEn: "Tidal Islets",
+          desc: "退潮後泥灘如水鏡，散落草丘宛如綠色浮島。",
+          fallback: "https://images.unsplash.com/photo-1476673160081-cf065607f449?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "03",
+          filename: "IMG_20260910_180013.jpg",
+          title: "落日",
+          titleEn: "Sundown Windmill",
+          desc: "夕陽緩緩西沉，風力發電機在暖橘暮色中化為剪影。",
+          fallback: "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "04",
+          filename: "IMG_20260910_181857_batch_0_1789642072965.jpg",
+          title: "暮靄",
+          titleEn: "Twilight Horizon",
+          desc: "落日餘溫化為淡紫天際，潮泥水痕映照微光。",
+          fallback: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "05",
+          filename: "IMG_20260910_182751_batch_3_1789642074993.jpg",
+          title: "藍調",
+          titleEn: "Blue Hour Symphony",
+          desc: "藍調時刻降臨，巨型風機列陣在深藍暮色中昂然聳立。",
+          fallback: "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "06",
+          filename: "IMG_20260910_182925_batch_4_1789642075657.jpg",
+          title: "消波",
+          titleEn: "Tetrapod Shore",
+          desc: "岸邊消波塊迎著細浪，天海交界泛著最柔和的粉橘色。",
+          fallback: "https://images.unsplash.com/photo-1518837695005-2083093ee35b?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "07",
+          filename: "IMG_20260910_233837_194_batch_7_1789642077157.jpg",
+          title: "碎浪",
+          titleEn: "Sparkling Sea",
+          desc: "萬頃海面躍動著烈日碎鑽，白色風車整齊排向地平線。",
+          fallback: "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      hehuan: [
+        {
+          id: "01",
+          filename: "hehuan_ridge_01.jpg",
+          title: "脊線之巔",
+          titleEn: "The Summit Ridge",
+          desc: "海拔三千四百公尺的合歡尖稜，冷冽空氣將遠山切成層層藍灰。",
+          fallback: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "02",
+          filename: "hehuan_ridge_02.jpg",
+          title: "箭竹草浪",
+          titleEn: "Bamboo Meadow Wave",
+          desc: "狂風吹拂無垠綠坡，金黃陽光在草浪間流轉。",
+          fallback: "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "03",
+          filename: "hehuan_ridge_03.jpg",
+          title: "雲海翻湧",
+          titleEn: "Sea of Clouds",
+          desc: "夕照染紅厚重雲瀑，群山孤島般浮沉於白色浩瀚中。",
+          fallback: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "04",
+          filename: "hehuan_ridge_04.jpg",
+          title: "冷杉剪影",
+          titleEn: "Spruce Silhouettes",
+          desc: "蒼勁鐵杉屹立崖邊，逆光迎向落日最後一道暖金。",
+          fallback: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "05",
+          filename: "hehuan_ridge_05.jpg",
+          title: "高嶺星河",
+          titleEn: "Alpine Galaxy",
+          desc: "高山深邃無光害夜幕，億萬繁星如銀紗橫跨武嶺上空。",
+          fallback: "https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "06",
+          filename: "hehuan_ridge_06.jpg",
+          title: "破曉曙光",
+          titleEn: "Dawn Over Peaks",
+          desc: "第一道晨曦撕開東方雲層，金光俐落灑落在奇萊北峰懸崖。",
+          fallback: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80"
+        }
+      ],
+      oldtown: [
+        {
+          id: "01",
+          filename: "oldtown_01.jpg",
+          title: "埕前斜陽",
+          titleEn: "Courtyard Sunlight",
+          desc: "午後斜陽穿透廟埕大榕樹，在紅磚石板上鋪出斑駁光痕。",
+          fallback: "https://images.unsplash.com/photo-1514565131-fce0801e5785?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "02",
+          filename: "oldtown_02.jpg",
+          title: "紅磚歲月",
+          titleEn: "Red Brick Texture",
+          desc: "歷經風霜的清水紅磚牆面，每一道刻痕都是時光的沉澱。",
+          fallback: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "03",
+          filename: "oldtown_03.jpg",
+          title: "亭仔腳步",
+          titleEn: "Arcade Footsteps",
+          desc: "老街騎樓深邃的拱圈廊道，光與暗在柱腳間規律交錯。",
+          fallback: "https://images.unsplash.com/photo-1528728329032-2972f65dfb3f?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "04",
+          filename: "oldtown_04.jpg",
+          title: "木格窗櫺",
+          titleEn: "Lattice Window",
+          desc: "古宅木格雕花窗櫺，漫射光線勾勒出安詳而私密的室內記憶。",
+          fallback: "https://images.unsplash.com/photo-1508873696983-2df5293cb325?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "05",
+          filename: "oldtown_05.jpg",
+          title: "巷弄青苔",
+          titleEn: "Mossy Alleyways",
+          desc: "窄巷古井旁的綠意青苔，雨後透出寧靜深沉的油潤水色。",
+          fallback: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80"
+        },
+        {
+          id: "06",
+          filename: "oldtown_06.jpg",
+          title: "古廟香煙",
+          titleEn: "Incense & Silhouette",
+          desc: "午後一線天光斜射入殿，裊裊香煙在光束中宛若微塵飛舞。",
+          fallback: "https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=1200&q=80"
+        }
+      ]
+    };
+
+    // Active State
+    let currentAlbum = 'gaomei';
+    let currentIndex = 0;
+    let isZoomed = false;
+    const localBlobs = {};
+
+    // Replay entrance animation utility
+    function triggerEntranceAnimation(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      const elements = container.querySelectorAll('.anim-tag, .anim-heading, .anim-desc, .anim-cta');
+      elements.forEach(el => {
+        el.style.animation = 'none';
+        void el.offsetWidth; // DOM Reflow
+        el.style.animation = '';
+      });
+    }
+
+    // Switch between Collections / Gaomei / Hehuan / Oldtown
+    function switchView(viewName) {
+      const views = {
+        collections: document.getElementById('view-collections'),
+        gaomei: document.getElementById('view-gaomei'),
+        hehuan: document.getElementById('view-hehuan'),
+        oldtown: document.getElementById('view-oldtown')
+      };
+
+      const tabs = {
+        collections: document.getElementById('tab-collections'),
+        gaomei: document.getElementById('tab-gaomei'),
+        hehuan: document.getElementById('tab-hehuan'),
+        oldtown: document.getElementById('tab-oldtown')
+      };
+
+      const minimapBox = document.getElementById('minimapContainer');
+      const breadcrumb = document.getElementById('currentViewBreadcrumb');
+
+      // Hide all views
+      Object.values(views).forEach(v => {
+        if (v) {
+          v.classList.add('hidden');
+          v.classList.remove('flex');
+        }
+      });
+
+      // Clear all active tab states
+      Object.values(tabs).forEach(t => {
+        if (t) {
+          t.classList.remove('active', 'border-[#d4af37]', 'text-white');
+          t.classList.add('border-transparent', 'text-zinc-400');
+        }
+      });
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Update active view
+      if (viewName === 'collections') {
+        views.collections.classList.remove('hidden');
+        views.collections.classList.add('flex');
+        tabs.collections.classList.add('active', 'border-[#d4af37]', 'text-white');
+        tabs.collections.classList.remove('border-transparent', 'text-zinc-400');
+        if (minimapBox) minimapBox.classList.add('hidden');
+        if (breadcrumb) breadcrumb.textContent = '影集總覽';
+        triggerEntranceAnimation('collectionsHeaderContent');
+      } else {
+        currentAlbum = viewName;
+        const activeView = views[viewName];
+        const activeTab = tabs[viewName];
+        if (activeView) {
+          activeView.classList.remove('hidden');
+          activeView.classList.add('flex');
+        }
+        if (activeTab) {
+          activeTab.classList.add('active', 'border-[#d4af37]', 'text-white');
+          activeTab.classList.remove('border-transparent', 'text-zinc-400');
+        }
+        if (minimapBox) minimapBox.classList.remove('hidden');
+
+        if (viewName === 'gaomei') {
+          if (breadcrumb) breadcrumb.textContent = '高美濕地篇章';
+          triggerEntranceAnimation('gaomeiHeroContent');
+        } else if (viewName === 'hehuan') {
+          if (breadcrumb) breadcrumb.textContent = '合歡山徑篇章';
+          triggerEntranceAnimation('hehuanHeroContent');
+        } else if (viewName === 'oldtown') {
+          if (breadcrumb) breadcrumb.textContent = '舊埕記憶篇章';
+          triggerEntranceAnimation('oldtownHeroContent');
+        }
+
+        renderGallery(viewName);
+      }
+    }
+
+    // Render Gallery for specific album
+    function renderGallery(albumKey = currentAlbum) {
+      let gridContainerId = 'galleryGridGaomei';
+      if (albumKey === 'hehuan') gridContainerId = 'galleryGridHehuan';
+      if (albumKey === 'oldtown') gridContainerId = 'galleryGridOldtown';
+
+      const container = document.getElementById(gridContainerId);
+      const minimap = document.getElementById('minimap');
+      if (!container) return;
+
+      container.innerHTML = '';
+      if (minimap) minimap.innerHTML = '';
+
+      const photos = photoAlbums[albumKey] || [];
+
+      photos.forEach((item, index) => {
+        const src = localBlobs[item.filename] || item.filename;
+        const delayClass = index % 3 === 1 ? 'delay-100' : index % 3 === 2 ? 'delay-200' : '';
+
+        // Card Element
+        const card = document.createElement('article');
+        card.className = `grid-item group relative bg-[#131417] border border-white/10 overflow-hidden cursor-pointer flex flex-col reveal-on-scroll ${delayClass}`;
+        card.setAttribute('data-index', index);
+        card.onclick = () => openZoom(index, albumKey);
+
+        card.innerHTML = `
+          <div class="relative w-full aspect-[3/4] overflow-hidden bg-black/40">
+            <!-- Dual Hover 1: Grayscale -> Vivid Color + Zoom -->
+            <img 
+              src="${src}" 
+              alt="${item.title}" 
+              loading="lazy" 
+              class="grid-img w-full h-full object-cover"
+              onerror="this.onerror=null; this.src='${item.fallback}';"
+            >
+
+            <!-- Number Label -->
+            <div class="absolute top-3 left-3 text-xs font-mono font-bold text-white bg-black/60 backdrop-blur-sm px-2 py-0.5 border border-white/15">
+              ${item.id}
+            </div>
+
+            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+            <!-- Dual Hover 2: Slide-in Caption on Hover -->
+            <div class="grid-caption absolute inset-x-0 bottom-0 p-5 flex flex-col justify-end">
+              <span class="text-[10px] font-mono text-[#d4af37] tracking-widest uppercase">${item.titleEn}</span>
+              <h3 class="text-xl font-sans font-bold text-white tracking-wide drop-shadow-md">
+                ${item.title}
+              </h3>
+              <p class="text-xs text-zinc-300 mt-1 font-sans line-clamp-2 leading-relaxed">
+                ${item.desc}
+              </p>
+              <div class="mt-3 flex items-center text-[10px] font-mono text-zinc-400 gap-1 tracking-wider uppercase">
+                <span>View More</span>
+                <span>→</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+
+        // Minimap dot
+        if (minimap) {
+          const dot = document.createElement('button');
+          dot.className = `minimap-dot w-2 h-2 rounded-full bg-white/20 hover:bg-white/60 transition-all ${index === currentIndex ? 'active' : ''}`;
+          dot.title = `${item.id}. ${item.title}`;
+          dot.onclick = () => openZoom(index, albumKey);
+          minimap.appendChild(dot);
+        }
+      });
+
+      // Update total counter in modal
+      const totalEl = document.getElementById('detailTotal');
+      if (totalEl) {
+        totalEl.textContent = String(photos.length).padStart(2, '0');
+      }
+
+      initScrollObserver();
+    }
+
+    // Scroll reveal observer
+    let scrollObserver = null;
+    function initScrollObserver() {
+      if (scrollObserver) {
+        scrollObserver.disconnect();
+      }
+
+      const observerOptions = {
+        root: null,
+        rootMargin: '0px 0px -40px 0px',
+        threshold: 0.12
+      };
+
+      scrollObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, observerOptions);
+
+      document.querySelectorAll('.reveal-on-scroll').forEach(el => {
+        scrollObserver.observe(el);
+      });
+    }
+
+    // Modal Zoom Open
+    function openZoom(index, albumKey = currentAlbum) {
+      currentAlbum = albumKey;
+      currentIndex = index;
+      isZoomed = true;
+      updateDetailView();
+
+      const modal = document.getElementById('zoomDetailModal');
+      modal.classList.remove('hidden');
+      void modal.offsetWidth;
+      modal.classList.remove('opacity-0');
+      modal.classList.add('opacity-100');
+      document.body.style.overflow = 'hidden';
+
+      updateMinimap();
+    }
+
+    // Modal Zoom Close
+    function closeZoom() {
+      if (!isZoomed) return;
+      isZoomed = false;
+      const modal = document.getElementById('zoomDetailModal');
+      modal.classList.remove('opacity-100');
+      modal.classList.add('opacity-0');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }, 300);
+    }
+
+    // Change photo inside modal
+    function changePhoto(direction) {
+      const photos = photoAlbums[currentAlbum] || [];
+      if (!photos.length) return;
+      currentIndex = (currentIndex + direction + photos.length) % photos.length;
+      const img = document.getElementById('detailImage');
+      img.style.opacity = '0';
+      img.style.transform = 'scale(0.96)';
+      setTimeout(() => {
+        updateDetailView();
+        img.style.opacity = '1';
+        img.style.transform = 'scale(1)';
+        updateMinimap();
+      }, 150);
+    }
+
+    // Update modal detail contents
+    function updateDetailView() {
+      const photos = photoAlbums[currentAlbum] || [];
+      const item = photos[currentIndex];
+      if (!item) return;
+
+      const img = document.getElementById('detailImage');
+      const src = localBlobs[item.filename] || item.filename;
+
+      img.src = src;
+      img.onerror = () => { img.src = item.fallback; };
+
+      document.getElementById('detailNumber').textContent = item.id;
+      document.getElementById('detailTotal').textContent = String(photos.length).padStart(2, '0');
+      document.getElementById('detailIndexTag').textContent = `PLATE NO. ${item.id} · ${currentAlbum.toUpperCase()}`;
+      document.getElementById('detailTitle').textContent = item.title;
+      document.getElementById('detailSubtitle').textContent = item.titleEn;
+      document.getElementById('detailSummary').textContent = item.desc;
+      document.getElementById('detailFilename').textContent = item.filename;
+
+      // Reset AI Critique view
+      const critiqueBox = document.getElementById('aiCritiqueBox');
+      if (critiqueBox) critiqueBox.classList.add('hidden');
+    }
+
+    function updateMinimap() {
+      document.querySelectorAll('.minimap-dot').forEach((dot, idx) => {
+        dot.classList.toggle('active', idx === currentIndex);
+      });
+    }
+
+    // Keyboard controls
+    window.addEventListener('keydown', (e) => {
+      if (!isZoomed) return;
+      if (e.key === 'Escape') closeZoom();
+      if (e.key === 'ArrowRight') changePhoto(1);
+      if (e.key === 'ArrowLeft') changePhoto(-1);
+    });
+
+    // File input handler for local high-res photos
+    function handleFileSelect(e) {
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+
+      Array.from(files).forEach(file => {
+        const url = URL.createObjectURL(file);
+        // Search across all albums
+        Object.keys(photoAlbums).forEach(key => {
+          const match = photoAlbums[key].find(p => p.filename.toLowerCase() === file.name.toLowerCase());
+          if (match) {
+            localBlobs[match.filename] = url;
+          }
+        });
+      });
+
+      renderGallery(currentAlbum);
+      if (isZoomed) {
+        updateDetailView();
+      }
+    }
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      if (menu) {
+        menu.classList.toggle('hidden');
+      }
+    }
+
+    /* =========================================================
+       GEMINI API INTEGRATION FEATURES
+       ========================================================= */
+
+    const apiKey = "";
+    let selectedCuratorTopic = "高美濕地：潮汐與微光的水鏡紀實";
+
+    async function fetchGeminiWithBackoff(payload, maxRetries = 3) {
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+      let delay = 1000;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (res.status === 429 && attempt < maxRetries) {
+            await new Promise(r => setTimeout(r, delay));
+            delay *= 2;
+            continue;
+          }
+          if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+          return await res.json();
+        } catch (err) {
+          if (attempt === maxRetries) throw err;
+          await new Promise(r => setTimeout(r, delay));
+          delay *= 2;
+        }
+      }
+    }
+
+    function openAiCuratorModal() {
+      document.getElementById('aiCuratorModal').classList.remove('hidden');
+    }
+
+    function closeAiCuratorModal() {
+      document.getElementById('aiCuratorModal').classList.add('hidden');
+    }
+
+    function setCuratorTopic(topic) {
+      selectedCuratorTopic = topic;
+      document.querySelectorAll('.topic-btn').forEach(btn => {
+        btn.classList.toggle('border-[#d4af37]', btn.textContent.includes(topic.slice(0, 4)));
+        btn.classList.toggle('text-white', btn.textContent.includes(topic.slice(0, 4)));
+      });
+    }
+
+    async function runAiCuratorGeneration() {
+      const btn = document.getElementById('btnGenerateCurator');
+      const resultBox = document.getElementById('aiCuratorResultBox');
+      const resultText = document.getElementById('aiCuratorResultText');
+      const customNotes = document.getElementById('aiCustomPrompt').value.trim();
+
+      btn.disabled = true;
+      btn.innerHTML = `<span>GENERATING STATEMENT...</span> <span class="animate-spin">⏳</span>`;
+
+      const systemPrompt = `你是一位資深國際當代攝影策展人與地景光影評論家，文字風格極具沉靜張力、優雅精確且詩意。請為攝影師的展覽作品集撰寫一段約 180-260 字的「策展引言 / 前言論述」。需提及光線的質地（例如頂光、藍調、逆光剪影、斜照磚紋）、地景的時間流逝感與拍攝凝視。`;
+      const userPrompt = `請針對主題【${selectedCuratorTopic}】撰寫策展論述。${customNotes ? `額外補充要求：${customNotes}` : ''}`;
+
+      const payload = {
+        contents: [{ parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] }
+      };
+
+      try {
+        const result = await fetchGeminiWithBackoff(payload);
+        const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          resultText.textContent = text;
+          resultBox.classList.remove('hidden');
+        } else {
+          resultText.textContent = '未能生成策展論述，請稍後重試。';
+          resultBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        resultText.textContent = '生成時發生錯誤，請檢查網路連線後重試。';
+        resultBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<span>GENERATE CURATORIAL STATEMENT</span> <span>✦</span>`;
+      }
+    }
+
+    function copyAiStatement() {
+      const text = document.getElementById('aiCuratorResultText').textContent;
+      if (!text) return;
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+
+      const status = document.createElement('div');
+      status.className = 'fixed top-6 right-6 bg-[#d4af37] text-black px-4 py-2 text-xs font-mono rounded shadow-lg z-50';
+      status.textContent = '已成功複製策展論述至剪貼簿！';
+      document.body.appendChild(status);
+      setTimeout(() => status.remove(), 2400);
+    }
+
+    async function generateAiCritique() {
+      const photos = photoAlbums[currentAlbum] || [];
+      const item = photos[currentIndex];
+      if (!item) return;
+
+      const box = document.getElementById('aiCritiqueBox');
+      const content = document.getElementById('aiCritiqueContent');
+      const status = document.getElementById('aiCritiqueStatus');
+      const btn = document.getElementById('btnAiCritique');
+
+      box.classList.remove('hidden');
+      content.textContent = '正在呼叫 Gemini 分析作品影調、構圖與拍攝幾何...';
+      status.textContent = 'ANALYZING...';
+      btn.disabled = true;
+
+      const systemPrompt = `你是一位專業攝影導師與暗房影調評析家。請簡潔、深刻地解析這張照片。用條列式提供：
+1. 【光質與影調】(解析自然光線與明暗層次)
+2. 【幾何構圖】(透視、留白或視覺導引線)
+3. 【拍攝靈感與建議】(給愛好者的快門、曝光或濾鏡建議)`;
+
+      const userPrompt = `作品名稱：${item.title} (${item.titleEn})\n所屬影集：${currentAlbum.toUpperCase()}\n檔案：${item.filename}\n官方簡述：${item.desc}\n請根據以上作品資訊提供深度評析。`;
+
+      const payload = {
+        contents: [{ parts: [{ text: userPrompt }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] }
+      };
+
+      try {
+        const result = await fetchGeminiWithBackoff(payload);
+        const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          content.textContent = text;
+          status.textContent = 'ANALYSIS COMPLETE';
+        } else {
+          content.textContent = '暫時無法取得分析，請稍後再試。';
+          status.textContent = 'ERROR';
+        }
+      } catch (e) {
+        content.textContent = '連線分析失敗，請重試。';
+        status.textContent = 'FAILED';
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function toggleAiChat() {
+      const panel = document.getElementById('aiChatPanel');
+      panel.classList.toggle('hidden');
+    }
+
+    function askQuickPrompt(question) {
+      document.getElementById('aiChatInput').value = question;
+      sendAiChatMessage();
+    }
+
+    async function sendAiChatMessage() {
+      const input = document.getElementById('aiChatInput');
+      const query = input.value.trim();
+      if (!query) return;
+
+      const messagesBox = document.getElementById('aiChatMessages');
+
+      const userBubble = document.createElement('div');
+      userBubble.className = 'text-right';
+      userBubble.innerHTML = `<span class="inline-block bg-[#d4af37]/20 border border-[#d4af37]/30 text-white rounded px-2.5 py-1 text-[11px] leading-relaxed">${escapeHtml(query)}</span>`;
+      messagesBox.appendChild(userBubble);
+      input.value = '';
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+
+      const botBubble = document.createElement('div');
+      botBubble.className = 'text-left';
+      botBubble.innerHTML = `<span class="inline-block bg-white/5 border border-white/10 text-zinc-300 rounded px-2.5 py-1 text-[11px] leading-relaxed">正在思考回覆...</span>`;
+      messagesBox.appendChild(botBubble);
+      messagesBox.scrollTop = messagesBox.scrollHeight;
+
+      const systemPrompt = `你是台灣地景與人文攝影的專屬 AI 策展顧問。請以簡潔親切、專業具啟發性的口吻回答提問（約 80-140 字）。聚焦在光線方向、大氣條件、快門速度控制與構圖美學。`;
+
+      const payload = {
+        contents: [{ parts: [{ text: query }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] }
+      };
+
+      try {
+        const result = await fetchGeminiWithBackoff(payload);
+        const reply = result?.candidates?.[0]?.content?.parts?.[0]?.text || '抱歉，暫時無法回答這個問題。';
+        botBubble.innerHTML = `<span class="inline-block bg-white/5 border border-[#d4af37]/30 text-zinc-200 rounded px-2.5 py-1.5 text-[11px] leading-relaxed">${escapeHtml(reply)}</span>`;
+      } catch (err) {
+        botBubble.innerHTML = `<span class="inline-block bg-red-950/40 border border-red-800/40 text-red-300 rounded px-2 py-1 text-[11px]">連線逾時，請稍後重試。</span>`;
+      } finally {
+        messagesBox.scrollTop = messagesBox.scrollHeight;
+      }
+    }
+
+    function escapeHtml(string) {
+      return String(string).replace(/[&<>"'`=\/]/g, function (s) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+          '/': '&#x2F;',
+          '`': '&#x60;',
+          '=': '&#x3D;'
+        }[s];
+      });
+    }
+
+    // Initialize layout on DOM load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderGallery('gaomei');
+      renderGallery('hehuan');
+      renderGallery('oldtown');
+      initScrollObserver();
+      triggerEntranceAnimation('collectionsHeaderContent');
+    });
+  </script>
+</body>
+</html>
